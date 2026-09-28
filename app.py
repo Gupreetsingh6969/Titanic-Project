@@ -28,11 +28,44 @@ st.markdown("""
     background-color: #f6f8fb;
 }
 
+/* =====================================================
+   METRIC CARDS
+   ===================================================== */
+
 [data-testid="stMetric"] {
-    background-color: white;
-    padding: 15px;
-    border-radius: 12px;
-    border: 1px solid #e5e7eb;
+    background-color: white !important;
+    padding: 18px !important;
+    border-radius: 12px !important;
+    border: 1px solid #e5e7eb !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Metric Label */
+[data-testid="stMetricLabel"] {
+    color: #374151 !important;
+    font-weight: 600 !important;
+}
+
+/* Metric Value */
+[data-testid="stMetricValue"] {
+    color: #111827 !important;
+    font-weight: 800 !important;
+    font-size: 30px !important;
+}
+
+/* Metric Delta */
+[data-testid="stMetricDelta"] {
+    color: #374151 !important;
+}
+
+/* Metric Value - all child elements */
+[data-testid="stMetricValue"] * {
+    color: #111827 !important;
+}
+
+/* Headings */
+h1, h2, h3 {
+    color: #111827;
 }
 
 </style>
@@ -181,7 +214,7 @@ st.markdown("---")
 
 
 # =========================================================
-# DASHBOARD
+# DASHBOARD CALCULATIONS
 # =========================================================
 
 total_passengers = len(df)
@@ -200,32 +233,40 @@ survival_rate = (
 
 
 # =========================================================
-# DASHBOARD METRICS
+# TITANIC DATASET OVERVIEW
 # =========================================================
 
 st.subheader("📊 Titanic Dataset Overview")
 
 col1, col2, col3, col4 = st.columns(4)
 
+
 with col1:
+
     st.metric(
         "Total Passengers",
         total_passengers
     )
 
+
 with col2:
+
     st.metric(
         "Survived",
         total_survived
     )
 
+
 with col3:
+
     st.metric(
         "Did Not Survive",
         total_not_survived
     )
 
+
 with col4:
+
     st.metric(
         "Survival Rate",
         f"{survival_rate:.1f}%"
@@ -318,6 +359,7 @@ with st.form("prediction_form"):
 
     col1, col2, col3 = st.columns(3)
 
+
     # =====================================================
     # PASSENGER INFORMATION
     # =====================================================
@@ -350,6 +392,7 @@ with st.form("prediction_form"):
             step=1
         )
 
+
     # =====================================================
     # FAMILY AND FARE
     # =====================================================
@@ -380,6 +423,7 @@ with st.form("prediction_form"):
             step=1.0
         )
 
+
     # =====================================================
     # EMBARKATION AND MODEL INFO
     # =====================================================
@@ -402,8 +446,9 @@ with st.form("prediction_form"):
             "Target: survived"
         )
 
+
     # =====================================================
-    # PREDICT BUTTON
+    # PREDICTION BUTTON
     # =====================================================
 
     submitted = st.form_submit_button(
@@ -427,6 +472,7 @@ if submitted:
         "Male": 1
     }[sex]
 
+
     # =====================================================
     # ENCODE EMBARKED
     # =====================================================
@@ -436,6 +482,7 @@ if submitted:
         "Queenstown (Q)": 1,
         "Southampton (S)": 2
     }[embarked]
+
 
     # =====================================================
     # CREATE INPUT DATA
@@ -451,14 +498,15 @@ if submitted:
         "embarked": int(embarked_value)
     }])
 
+
     # =====================================================
-    # IMPORTANT:
-    # USE EXACT SAME FEATURE ORDER
+    # EXACT FEATURE ORDER
     # =====================================================
 
     input_data = input_data[
         feature_order
     ]
+
 
     # =====================================================
     # SCALE INPUT
@@ -468,13 +516,15 @@ if submitted:
         input_data
     )
 
+
     # =====================================================
-    # PREDICT
+    # MAKE PREDICTION
     # =====================================================
 
     prediction = int(
         model.predict(input_scaled)[0]
     )
+
 
     # =====================================================
     # DISPLAY PREDICTION
@@ -483,6 +533,7 @@ if submitted:
     st.markdown("---")
 
     st.subheader("🎯 Prediction Result")
+
 
     if prediction == 1:
 
@@ -494,6 +545,7 @@ if submitted:
             "The SVM model predicts that "
             "this passenger would survive."
         )
+
 
     else:
 
