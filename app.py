@@ -18,61 +18,21 @@ st.set_page_config(
 
 
 # =========================================================
-# STYLING
+# CUSTOM CSS
 # =========================================================
 
 st.markdown("""
 <style>
 
 .main {
-    background: #f6f8fb;
+    background-color: #f6f8fb;
 }
 
-.hero {
-    padding: 28px 32px;
-    border-radius: 18px;
-    background: linear-gradient(135deg, #172554, #2563eb);
-    color: white;
-    margin-bottom: 24px;
-}
-
-.hero h1 {
-    margin: 0;
-    font-size: 38px;
-}
-
-.hero p {
-    margin-top: 8px;
-    font-size: 16px;
-    opacity: 0.9;
-}
-
-.card {
-    padding: 20px;
-    border-radius: 16px;
-    background: white;
+[data-testid="stMetric"] {
+    background-color: white;
+    padding: 15px;
+    border-radius: 12px;
     border: 1px solid #e5e7eb;
-    box-shadow: 0 3px 12px rgba(0,0,0,0.05);
-}
-
-.result-survive {
-    padding: 24px;
-    border-radius: 16px;
-    background: #ecfdf5;
-    border: 1px solid #86efac;
-    text-align: center;
-}
-
-.result-not {
-    padding: 24px;
-    border-radius: 16px;
-    background: #fef2f2;
-    border: 1px solid #fca5a5;
-    text-align: center;
-}
-
-.small {
-    color: #64748b;
 }
 
 </style>
@@ -80,7 +40,7 @@ st.markdown("""
 
 
 # =========================================================
-# LOAD DATA
+# LOAD TITANIC DATASET
 # =========================================================
 
 @st.cache_data
@@ -105,12 +65,12 @@ def load_data():
         inplace=True
     )
 
-    # Fill missing age values
+    # Fill missing Age values
     df["age"] = df["age"].fillna(
         df["age"].mean()
     )
 
-    # Remove rows with missing embarked values
+    # Remove rows where Embarked is missing
     df.dropna(
         subset=["embarked"],
         inplace=True
@@ -141,7 +101,7 @@ def load_data():
     })
 
     # =====================================================
-    # CONVERT NUMERIC COLUMNS
+    # CONVERT DATA TYPES
     # =====================================================
 
     df["pclass"] = df["pclass"].astype(int)
@@ -187,7 +147,7 @@ def train_model():
 
     X_scaled = scaler.fit_transform(X)
 
-    # SVM Model
+    # Create SVM model
     model = SVC()
 
     # Train model
@@ -196,12 +156,7 @@ def train_model():
         y
     )
 
-    return (
-        model,
-        scaler,
-        df,
-        feature_order
-    )
+    return model, scaler, df, feature_order
 
 
 # =========================================================
@@ -215,77 +170,86 @@ model, scaler, df, feature_order = train_model()
 # HEADER
 # =========================================================
 
-st.markdown("""
-<div class="hero">
+st.title("🚢 Titanic Survival Predictor")
 
-    <h1>🚢 Titanic Survival Predictor</h1>
+st.write(
+    "Machine Learning project using "
+    "Support Vector Machine (SVM)"
+)
 
-    <p>
-        Machine Learning project using Support Vector Machine (SVM)
-    </p>
-
-</div>
-""", unsafe_allow_html=True)
+st.markdown("---")
 
 
 # =========================================================
 # DASHBOARD
 # =========================================================
 
-total = len(df)
+total_passengers = len(df)
 
-survived = int(
+total_survived = int(
     df["survived"].sum()
 )
 
-not_survived = total - survived
+total_not_survived = (
+    total_passengers - total_survived
+)
 
 survival_rate = (
-    survived / total * 100
-)
+    total_survived / total_passengers
+) * 100
 
 
 # =========================================================
 # DASHBOARD METRICS
 # =========================================================
 
-c1, c2, c3, c4 = st.columns(4)
+st.subheader("📊 Titanic Dataset Overview")
 
-c1.metric(
-    "Total Passengers",
-    total
-)
+col1, col2, col3, col4 = st.columns(4)
 
-c2.metric(
-    "Survived",
-    survived
-)
+with col1:
+    st.metric(
+        "Total Passengers",
+        total_passengers
+    )
 
-c3.metric(
-    "Did Not Survive",
-    not_survived
-)
+with col2:
+    st.metric(
+        "Survived",
+        total_survived
+    )
 
-c4.metric(
-    "Survival Rate",
-    f"{survival_rate:.1f}%"
-)
+with col3:
+    st.metric(
+        "Did Not Survive",
+        total_not_survived
+    )
+
+with col4:
+    st.metric(
+        "Survival Rate",
+        f"{survival_rate:.1f}%"
+    )
 
 
 # =========================================================
 # SURVIVAL OVERVIEW
 # =========================================================
 
-st.markdown("### 📊 Survival Overview")
+st.markdown("---")
 
-left, right = st.columns(2)
+st.subheader("📈 Survival Overview")
+
+left_column, right_column = st.columns(2)
 
 
 # =========================================================
-# GENDER SURVIVAL RATE
+# GENDER SURVIVAL
 # =========================================================
 
-with left:
+with left_column:
+
+    st.write("### 👨‍👩‍👧 Survival Rate by Gender")
 
     gender_rate = (
         df.groupby("sex")["survived"]
@@ -312,7 +276,9 @@ with left:
 # OVERALL SURVIVAL
 # =========================================================
 
-with right:
+with right_column:
+
+    st.write("### 🚢 Overall Survival")
 
     overview = pd.DataFrame({
         "Status": [
@@ -320,8 +286,8 @@ with right:
             "Did Not Survive"
         ],
         "Passengers": [
-            survived,
-            not_survived
+            total_survived,
+            total_not_survived
         ]
     })
 
@@ -334,12 +300,13 @@ with right:
 # PREDICTION SECTION
 # =========================================================
 
-st.markdown(
-    "### 🔮 Predict Passenger Survival"
-)
+st.markdown("---")
 
-st.caption(
-    "Enter passenger details to predict survival using the trained SVM model."
+st.subheader("🔮 Predict Passenger Survival")
+
+st.write(
+    "Enter passenger details to predict survival "
+    "using the trained SVM model."
 )
 
 
@@ -361,9 +328,9 @@ with st.form("prediction_form"):
             "Passenger Class",
             [1, 2, 3],
             help=(
-                "1 = First class, "
-                "2 = Second class, "
-                "3 = Third class"
+                "1 = First Class | "
+                "2 = Second Class | "
+                "3 = Third Class"
             )
         )
 
@@ -384,13 +351,13 @@ with st.form("prediction_form"):
         )
 
     # =====================================================
-    # FAMILY AND FARE INFORMATION
+    # FAMILY AND FARE
     # =====================================================
 
     with col2:
 
         sibsp = st.number_input(
-            "Siblings / Spouses Aboard (sibsp)",
+            "Siblings / Spouses Aboard",
             min_value=0,
             max_value=10,
             value=0,
@@ -398,7 +365,7 @@ with st.form("prediction_form"):
         )
 
         parch = st.number_input(
-            "Parents / Children Aboard (parch)",
+            "Parents / Children Aboard",
             min_value=0,
             max_value=10,
             value=0,
@@ -414,7 +381,7 @@ with st.form("prediction_form"):
         )
 
     # =====================================================
-    # EMBARKATION INFORMATION
+    # EMBARKATION AND MODEL INFO
     # =====================================================
 
     with col3:
@@ -428,24 +395,15 @@ with st.form("prediction_form"):
             ]
         )
 
-        st.markdown(
-            "**Model:** SVC (Support Vector Classifier)"
-        )
-
-        st.markdown(
-            "**Preprocessing:** StandardScaler"
-        )
-
-        st.markdown(
-            "**Features:** 7"
-        )
-
-        st.markdown(
-            "**Target:** survived"
+        st.info(
+            "Model: SVC\n\n"
+            "Preprocessing: StandardScaler\n\n"
+            "Features: 7\n\n"
+            "Target: survived"
         )
 
     # =====================================================
-    # PREDICTION BUTTON
+    # PREDICT BUTTON
     # =====================================================
 
     submitted = st.form_submit_button(
@@ -494,7 +452,8 @@ if submitted:
     }])
 
     # =====================================================
-    # EXACT FEATURE ORDER
+    # IMPORTANT:
+    # USE EXACT SAME FEATURE ORDER
     # =====================================================
 
     input_data = input_data[
@@ -510,7 +469,7 @@ if submitted:
     )
 
     # =====================================================
-    # MAKE PREDICTION
+    # PREDICT
     # =====================================================
 
     prediction = int(
@@ -518,40 +477,34 @@ if submitted:
     )
 
     # =====================================================
-    # DISPLAY RESULT
+    # DISPLAY PREDICTION
     # =====================================================
 
     st.markdown("---")
 
+    st.subheader("🎯 Prediction Result")
+
     if prediction == 1:
 
-        st.markdown("""
-        <div class="result-survive">
+        st.success(
+            "✅ Predicted: Survived"
+        )
 
-            <h2>✅ Predicted: Survived</h2>
-
-            <p>
-                The SVM model predicts that this passenger
-                would survive.
-            </p>
-
-        </div>
-        """, unsafe_allow_html=True)
+        st.write(
+            "The SVM model predicts that "
+            "this passenger would survive."
+        )
 
     else:
 
-        st.markdown("""
-        <div class="result-not">
+        st.error(
+            "❌ Predicted: Did Not Survive"
+        )
 
-            <h2>❌ Predicted: Did Not Survive</h2>
-
-            <p>
-                The SVM model predicts that this passenger
-                would not survive.
-            </p>
-
-        </div>
-        """, unsafe_allow_html=True)
+        st.write(
+            "The SVM model predicts that "
+            "this passenger would not survive."
+        )
 
 
 # =========================================================
@@ -560,25 +513,27 @@ if submitted:
 
 st.markdown("---")
 
-with st.expander("ℹ️ About this project"):
+with st.expander("ℹ️ About this Project"):
 
     st.write("""
-    This Streamlit application follows the ML workflow
-    used in the Titanic SVM project:
+    This Streamlit application uses a Support Vector Machine
+    (SVM) to predict Titanic passenger survival.
+
+    Machine Learning Workflow:
 
     1. Load Titanic dataset using Seaborn.
     2. Remove unused columns.
     3. Remove the "alone" feature.
-    4. Fill missing age values with the mean.
-    5. Remove rows with missing embarked values.
-    6. Encode categorical values.
-    7. Separate features (X) and target (y).
-    8. Standardize features using StandardScaler.
-    9. Train an SVC model.
-    10. Take passenger input from the user.
+    4. Handle missing Age values.
+    5. Remove missing Embarked values.
+    6. Encode categorical variables.
+    7. Select 7 features.
+    8. Apply StandardScaler.
+    9. Train the SVC model.
+    10. Take passenger information from the user.
     11. Apply the same feature order.
-    12. Scale the input using StandardScaler.
-    13. Use the trained SVM model to predict survival.
+    12. Scale the user input.
+    13. Predict passenger survival.
     """)
 
 
@@ -586,7 +541,10 @@ with st.expander("ℹ️ About this project"):
 # FOOTER
 # =========================================================
 
+st.markdown("---")
+
 st.caption(
-    "Titanic Survival Prediction • SVM Machine Learning Project"
+    "Titanic Survival Prediction • "
+    "SVM Machine Learning Project"
 )
 
