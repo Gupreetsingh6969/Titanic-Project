@@ -2,8 +2,9 @@
 import streamlit as st
 import pandas as pd
 import seaborn as sns
-from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
+
 
 # =========================================================
 # PAGE CONFIGURATION
@@ -14,6 +15,7 @@ st.set_page_config(
     page_icon="🚢",
     layout="wide"
 )
+
 
 # =========================================================
 # STYLING
@@ -76,8 +78,9 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+
 # =========================================================
-# LOAD AND PREPROCESS DATA
+# LOAD DATA
 # =========================================================
 
 @st.cache_data
@@ -87,9 +90,6 @@ def load_data():
     df = sns.load_dataset("titanic")
 
     # Remove unused columns
-    # IMPORTANT:
-    # "alone" is also removed so that training features
-    # match the prediction input features.
     df.drop(
         [
             "deck",
@@ -104,22 +104,39 @@ def load_data():
         inplace=True
     )
 
-    # Fill missing age values with mean
+    # Fill missing age values
     df["age"] = df["age"].fillna(df["age"].mean())
 
-    # Remove rows where embarked is missing
+    # Remove rows with missing embarked
     df.dropna(subset=["embarked"], inplace=True)
 
-    # Encode Sex
-    le_sex = LabelEncoder()
-    df["sex"] = le_sex.fit_transform(df["sex"])
+    # Fixed encoding
+    # female = 0
+    # male = 1
+    df["sex"] = df["sex"].map({
+        "female": 0,
+        "male": 1
+    })
 
-    # Encode Embarked
-    le_embarked = LabelEncoder()
-    df["embarked"] = le_embarked.fit_transform(df["embarked"])
+    # Fixed encoding
+    # C = 0
+    # Q = 1
+    # S = 2
+    df["embarked"] = df["embarked"].map({
+        "C": 0,
+        "Q": 1,
+        "S": 2
+    })
 
-    # Convert data to integer
-    df = df.astype(int)
+    # Convert numeric columns to integer
+    df["pclass"] = df["pclass"].astype(int)
+    df["sex"] = df["sex"].astype(int)
+    df["age"] = df["age"].round().astype(int)
+    df["sibsp"] = df["sibsp"].astype(int)
+    df["parch"] = df["parch"].astype(int)
+    df["fare"] = df["fare"].round().astype(int)
+    df["embarked"] = df["embarked"].astype(int)
+    df["survived"] = df["survived"].astype(int)
 
     return df
 
@@ -133,8 +150,22 @@ def train_model():
 
     df = load_data()
 
-    # Separate features and target
-    X = df.drop("survived", axis=1)
+    # IMPORTANT:
+    # These are the exact 7 features used by the model.
+    feature_order = [
+        "pclass",
+        "sex",
+        "age",
+        "sibsp",
+        "parch",
+        "fare",
+        "embarked"
+    ]
+
+    # Features
+    X = df[feature_order]
+
+    # Target
     y = df["survived"]
 
     # StandardScaler
@@ -142,17 +173,21 @@ def train_model():
 
     X_scaled = scaler.fit_transform(X)
 
-    # SVM Model
+    # SVM model
     model = SVC()
 
     # Train model
     model.fit(X_scaled, y)
 
-    return model, scaler, df
+    return model, scaler, df, feature_order
 
 
-# Load trained model
-model, scaler, df = train_model()
+# =========================================================
+# LOAD MODEL
+# =========================================================
+
+model, scaler, df, feature_order = train_model()
+
 
 # =========================================================
 # HEADER
@@ -170,6 +205,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
+
 # =========================================================
 # DASHBOARD
 # =========================================================
@@ -184,6 +220,7 @@ survival_rate = survived / total * 100
 
 
 c1, c2, c3, c4 = st.columns(4)
+
 
 c1.metric(
     "Total Passengers",
@@ -205,6 +242,7 @@ c4.metric(
     f"{survival_rate:.1f}%"
 )
 
+
 # =========================================================
 # SURVIVAL OVERVIEW
 # =========================================================
@@ -215,7 +253,7 @@ left, right = st.columns(2)
 
 
 # ---------------------------------------------------------
-# Survival Rate by Gender
+# Gender Survival Rate
 # ---------------------------------------------------------
 
 with left:
@@ -223,20 +261,14 @@ with left:
     gender_rate = df.groupby("sex")["survived"].mean() * 100
 
     gender_table = pd.DataFrame({
-
         "Group": [
             "Female",
             "Male"
         ],
-
         "Survival Rate (%)": [
-
             gender_rate.get(0, 0),
-
             gender_rate.get(1, 0)
-
         ]
-
     })
 
     st.bar_chart(
@@ -245,23 +277,20 @@ with left:
 
 
 # ---------------------------------------------------------
-# Survived vs Did Not Survive
+# Overall Survival
 # ---------------------------------------------------------
 
 with right:
 
     overview = pd.DataFrame({
-
         "Status": [
             "Survived",
             "Did Not Survive"
         ],
-
         "Passengers": [
             survived,
             not_survived
         ]
-
     })
 
     st.bar_chart(
@@ -276,13 +305,14 @@ with right:
 st.markdown("### 🔮 Predict Passenger Survival")
 
 st.caption(
-    "Enter passenger details. The input columns follow the preprocessing used in the ML model."
+    "Enter passenger details to predict survival using the trained SVM model."
 )
 
 
 with st.form("prediction_form"):
 
     col1, col2, col3 = st.columns(3)
+
 
     # -----------------------------------------------------
     # Passenger Information
@@ -291,40 +321,29 @@ with st.form("prediction_form"):
     with col1:
 
         pclass = st.selectbox(
-
             "Passenger Class",
-
             [1, 2, 3],
-
             help=(
                 "1 = First class, "
                 "2 = Second class, "
                 "3 = Third class"
             )
-
         )
 
         sex = st.selectbox(
-
             "Sex",
-
             [
                 "Female",
                 "Male"
             ]
-
         )
 
         age = st.number_input(
-
             "Age",
-
             min_value=0,
-
             max_value=100,
-
-            value=30
-
+            value=30,
+            step=1
         )
 
 
@@ -335,41 +354,27 @@ with st.form("prediction_form"):
     with col2:
 
         sibsp = st.number_input(
-
             "Siblings / Spouses Aboard (sibsp)",
-
             min_value=0,
-
             max_value=10,
-
-            value=0
-
+            value=0,
+            step=1
         )
 
         parch = st.number_input(
-
             "Parents / Children Aboard (parch)",
-
             min_value=0,
-
             max_value=10,
-
-            value=0
-
+            value=0,
+            step=1
         )
 
         fare = st.number_input(
-
             "Fare",
-
             min_value=0.0,
-
             max_value=600.0,
-
             value=32.0,
-
             step=1.0
-
         )
 
 
@@ -380,15 +385,12 @@ with st.form("prediction_form"):
     with col3:
 
         embarked = st.selectbox(
-
             "Port of Embarkation",
-
             [
                 "Cherbourg (C)",
                 "Queenstown (Q)",
                 "Southampton (S)"
             ]
-
         )
 
         st.markdown(
@@ -408,14 +410,13 @@ with st.form("prediction_form"):
         )
 
 
-    # Prediction button
+    # -----------------------------------------------------
+    # Prediction Button
+    # -----------------------------------------------------
 
     submitted = st.form_submit_button(
-
         "🚀 Predict Survival",
-
         use_container_width=True
-
     )
 
 
@@ -429,71 +430,41 @@ if submitted:
     # Encode Sex
     # -----------------------------------------------------
 
-    # LabelEncoder:
-    # female = 0
-    # male = 1
-
-    sex_value = 0 if sex == "Female" else 1
+    sex_value = {
+        "Female": 0,
+        "Male": 1
+    }[sex]
 
 
     # -----------------------------------------------------
     # Encode Embarked
     # -----------------------------------------------------
 
-    # LabelEncoder:
-    # C = 0
-    # Q = 1
-    # S = 2
-
     embarked_value = {
-
         "Cherbourg (C)": 0,
-
         "Queenstown (Q)": 1,
-
         "Southampton (S)": 2
-
     }[embarked]
 
 
     # -----------------------------------------------------
-    # Create Input DataFrame
+    # Create Input Data
     # -----------------------------------------------------
 
     input_data = pd.DataFrame([{
-
-        "pclass": pclass,
-
-        "sex": sex_value,
-
+        "pclass": int(pclass),
+        "sex": int(sex_value),
         "age": int(age),
-
         "sibsp": int(sibsp),
-
         "parch": int(parch),
-
         "fare": int(round(fare)),
-
-        "embarked": embarked_value
-
+        "embarked": int(embarked_value)
     }])
 
 
     # -----------------------------------------------------
-    # Make sure feature order matches training data
+    # EXACT FEATURE ORDER
     # -----------------------------------------------------
-
-    feature_order = [
-
-        "pclass",
-        "sex",
-        "age",
-        "sibsp",
-        "parch",
-        "fare",
-        "embarked"
-
-    ]
 
     input_data = input_data[feature_order]
 
@@ -502,11 +473,13 @@ if submitted:
     # Scale Input
     # -----------------------------------------------------
 
-    input_scaled = scaler.transform(input_data)
+    input_scaled = scaler.transform(
+        input_data
+    )
 
 
     # -----------------------------------------------------
-    # Prediction
+    # Make Prediction
     # -----------------------------------------------------
 
     prediction = int(
@@ -559,6 +532,7 @@ if submitted:
 
 st.markdown("---")
 
+
 with st.expander("ℹ️ About this project"):
 
     st.write("""
@@ -567,11 +541,10 @@ with st.expander("ℹ️ About this project"):
 
     1. Load Titanic dataset using Seaborn.
     2. Remove unused columns.
-    3. Fill missing age values with the mean.
-    4. Remove rows with missing embarked values.
-    5. Encode categorical values.
-    6. Remove the "alone" feature to keep training and
-       prediction features consistent.
+    3. Remove the "alone" feature.
+    4. Fill missing age values with the mean.
+    5. Remove rows with missing embarked values.
+    6. Encode categorical values.
     7. Separate features (X) and target (y).
     8. Standardize features using StandardScaler.
     9. Train an SVC model.
@@ -590,3 +563,5 @@ st.caption(
     "Titanic Survival Prediction • SVM Machine Learning Project"
 )
 ```
+
+
