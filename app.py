@@ -44,7 +44,7 @@ st.markdown("""
 .hero p {
     margin-top: 8px;
     font-size: 16px;
-    opacity: .9;
+    opacity: 0.9;
 }
 
 .card {
@@ -52,7 +52,7 @@ st.markdown("""
     border-radius: 16px;
     background: white;
     border: 1px solid #e5e7eb;
-    box-shadow: 0 3px 12px rgba(0,0,0,.05);
+    box-shadow: 0 3px 12px rgba(0,0,0,0.05);
 }
 
 .result-survive {
@@ -90,45 +90,60 @@ def load_data():
     df = sns.load_dataset("titanic")
 
     # Remove unused columns
+    columns_to_drop = [
+        "deck",
+        "embark_town",
+        "alive",
+        "class",
+        "who",
+        "adult_male",
+        "alone"
+    ]
+
     df.drop(
-        [
-            "deck",
-            "embark_town",
-            "alive",
-            "class",
-            "who",
-            "adult_male",
-            "alone"
-        ],
-        axis=1,
+        columns=columns_to_drop,
         inplace=True
     )
 
     # Fill missing age values
-    df["age"] = df["age"].fillna(df["age"].mean())
+    df["age"] = df["age"].fillna(
+        df["age"].mean()
+    )
 
-    # Remove rows with missing embarked
-    df.dropna(subset=["embarked"], inplace=True)
+    # Remove rows with missing embarked values
+    df.dropna(
+        subset=["embarked"],
+        inplace=True
+    )
 
-    # Fixed encoding
-    # female = 0
-    # male = 1
+    # =====================================================
+    # ENCODE SEX
+    # Female = 0
+    # Male = 1
+    # =====================================================
+
     df["sex"] = df["sex"].map({
         "female": 0,
         "male": 1
     })
 
-    # Fixed encoding
+    # =====================================================
+    # ENCODE EMBARKED
     # C = 0
     # Q = 1
     # S = 2
+    # =====================================================
+
     df["embarked"] = df["embarked"].map({
         "C": 0,
         "Q": 1,
         "S": 2
     })
 
-    # Convert numeric columns to integer
+    # =====================================================
+    # CONVERT NUMERIC COLUMNS
+    # =====================================================
+
     df["pclass"] = df["pclass"].astype(int)
     df["sex"] = df["sex"].astype(int)
     df["age"] = df["age"].round().astype(int)
@@ -150,8 +165,7 @@ def train_model():
 
     df = load_data()
 
-    # IMPORTANT:
-    # These are the exact 7 features used by the model.
+    # Exact feature order
     feature_order = [
         "pclass",
         "sex",
@@ -173,13 +187,21 @@ def train_model():
 
     X_scaled = scaler.fit_transform(X)
 
-    # SVM model
+    # SVM Model
     model = SVC()
 
     # Train model
-    model.fit(X_scaled, y)
+    model.fit(
+        X_scaled,
+        y
+    )
 
-    return model, scaler, df, feature_order
+    return (
+        model,
+        scaler,
+        df,
+        feature_order
+    )
 
 
 # =========================================================
@@ -212,15 +234,22 @@ st.markdown("""
 
 total = len(df)
 
-survived = int(df["survived"].sum())
+survived = int(
+    df["survived"].sum()
+)
 
 not_survived = total - survived
 
-survival_rate = survived / total * 100
+survival_rate = (
+    survived / total * 100
+)
 
+
+# =========================================================
+# DASHBOARD METRICS
+# =========================================================
 
 c1, c2, c3, c4 = st.columns(4)
-
 
 c1.metric(
     "Total Passengers",
@@ -252,13 +281,16 @@ st.markdown("### 📊 Survival Overview")
 left, right = st.columns(2)
 
 
-# ---------------------------------------------------------
-# Gender Survival Rate
-# ---------------------------------------------------------
+# =========================================================
+# GENDER SURVIVAL RATE
+# =========================================================
 
 with left:
 
-    gender_rate = df.groupby("sex")["survived"].mean() * 100
+    gender_rate = (
+        df.groupby("sex")["survived"]
+        .mean() * 100
+    )
 
     gender_table = pd.DataFrame({
         "Group": [
@@ -276,9 +308,9 @@ with left:
     )
 
 
-# ---------------------------------------------------------
-# Overall Survival
-# ---------------------------------------------------------
+# =========================================================
+# OVERALL SURVIVAL
+# =========================================================
 
 with right:
 
@@ -302,21 +334,26 @@ with right:
 # PREDICTION SECTION
 # =========================================================
 
-st.markdown("### 🔮 Predict Passenger Survival")
+st.markdown(
+    "### 🔮 Predict Passenger Survival"
+)
 
 st.caption(
     "Enter passenger details to predict survival using the trained SVM model."
 )
 
 
+# =========================================================
+# PREDICTION FORM
+# =========================================================
+
 with st.form("prediction_form"):
 
     col1, col2, col3 = st.columns(3)
 
-
-    # -----------------------------------------------------
-    # Passenger Information
-    # -----------------------------------------------------
+    # =====================================================
+    # PASSENGER INFORMATION
+    # =====================================================
 
     with col1:
 
@@ -346,10 +383,9 @@ with st.form("prediction_form"):
             step=1
         )
 
-
-    # -----------------------------------------------------
-    # Family and Fare Information
-    # -----------------------------------------------------
+    # =====================================================
+    # FAMILY AND FARE INFORMATION
+    # =====================================================
 
     with col2:
 
@@ -377,10 +413,9 @@ with st.form("prediction_form"):
             step=1.0
         )
 
-
-    # -----------------------------------------------------
-    # Embarkation Information
-    # -----------------------------------------------------
+    # =====================================================
+    # EMBARKATION INFORMATION
+    # =====================================================
 
     with col3:
 
@@ -409,10 +444,9 @@ with st.form("prediction_form"):
             "**Target:** survived"
         )
 
-
-    # -----------------------------------------------------
-    # Prediction Button
-    # -----------------------------------------------------
+    # =====================================================
+    # PREDICTION BUTTON
+    # =====================================================
 
     submitted = st.form_submit_button(
         "🚀 Predict Survival",
@@ -426,19 +460,18 @@ with st.form("prediction_form"):
 
 if submitted:
 
-    # -----------------------------------------------------
-    # Encode Sex
-    # -----------------------------------------------------
+    # =====================================================
+    # ENCODE SEX
+    # =====================================================
 
     sex_value = {
         "Female": 0,
         "Male": 1
     }[sex]
 
-
-    # -----------------------------------------------------
-    # Encode Embarked
-    # -----------------------------------------------------
+    # =====================================================
+    # ENCODE EMBARKED
+    # =====================================================
 
     embarked_value = {
         "Cherbourg (C)": 0,
@@ -446,10 +479,9 @@ if submitted:
         "Southampton (S)": 2
     }[embarked]
 
-
-    # -----------------------------------------------------
-    # Create Input Data
-    # -----------------------------------------------------
+    # =====================================================
+    # CREATE INPUT DATA
+    # =====================================================
 
     input_data = pd.DataFrame([{
         "pclass": int(pclass),
@@ -461,38 +493,35 @@ if submitted:
         "embarked": int(embarked_value)
     }])
 
-
-    # -----------------------------------------------------
+    # =====================================================
     # EXACT FEATURE ORDER
-    # -----------------------------------------------------
+    # =====================================================
 
-    input_data = input_data[feature_order]
+    input_data = input_data[
+        feature_order
+    ]
 
-
-    # -----------------------------------------------------
-    # Scale Input
-    # -----------------------------------------------------
+    # =====================================================
+    # SCALE INPUT
+    # =====================================================
 
     input_scaled = scaler.transform(
         input_data
     )
 
-
-    # -----------------------------------------------------
-    # Make Prediction
-    # -----------------------------------------------------
+    # =====================================================
+    # MAKE PREDICTION
+    # =====================================================
 
     prediction = int(
         model.predict(input_scaled)[0]
     )
-
 
     # =====================================================
     # DISPLAY RESULT
     # =====================================================
 
     st.markdown("---")
-
 
     if prediction == 1:
 
@@ -508,7 +537,6 @@ if submitted:
 
         </div>
         """, unsafe_allow_html=True)
-
 
     else:
 
@@ -531,7 +559,6 @@ if submitted:
 # =========================================================
 
 st.markdown("---")
-
 
 with st.expander("ℹ️ About this project"):
 
@@ -562,3 +589,4 @@ with st.expander("ℹ️ About this project"):
 st.caption(
     "Titanic Survival Prediction • SVM Machine Learning Project"
 )
+
