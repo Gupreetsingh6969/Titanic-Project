@@ -1,4 +1,4 @@
-```python
+
 import streamlit as st
 import pandas as pd
 import seaborn as sns
@@ -562,6 +562,3 @@ with st.expander("ℹ️ About this project"):
 st.caption(
     "Titanic Survival Prediction • SVM Machine Learning Project"
 )
-```
-
-
